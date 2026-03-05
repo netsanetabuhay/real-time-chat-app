@@ -23,7 +23,7 @@ const [isDataSubmitted, setIsDataSubmitted] = useState(false);
         {currentState === "sign up" && !isDataSubmitted && (
           <input 
             type="text" 
-            className='p-2 border-gray-500 rounded-md focus:outline-none' 
+            className='p-2 border border-gray-500 rounded-md focus:outline-none focus:ring-2' 
             placeholder='Full Name' 
             onChange={(e) => setFullname(e.target.value)}
             value={fullName}
@@ -43,7 +43,7 @@ const [isDataSubmitted, setIsDataSubmitted] = useState(false);
             />
             <input 
               onChange={(e) => setPassword(e.target.value)} 
-              value={password}  // Fixed: was value={email}
+              value={password}  
               type="password" 
               placeholder='Password' 
               required 
@@ -55,9 +55,9 @@ const [isDataSubmitted, setIsDataSubmitted] = useState(false);
         {currentState === "sign up" && isDataSubmitted && (
           <textarea 
             onChange={(e) => setBio(e.target.value)} 
-            rows={4}  // Fixed: was row ={4}
-            className='p-2 focus:ring-2 focus:ring-indigo-500 border border-gray-500 rounded-md focus:outline-none'  // Fixed: was rounder-md
-            placeholder='Provide a short bio...'  // Fixed: was 'provide a short bio....'
+            rows={4} 
+            className='p-2 focus:ring-2 focus:ring-indigo-500 border border-gray-500 rounded-md focus:outline-none'  
+            placeholder='Provide a short bio...'  
             value={bio}
             required 
           />
@@ -67,7 +67,7 @@ const [isDataSubmitted, setIsDataSubmitted] = useState(false);
           type='submit' 
           className='py-3 bg-gradient-to-r from-purple-400 to-violet-600 text-white rounded-md cursor-pointer'
         >
-          {currentState === "sign up" ? "Create an Account" : "Login Now"}  {/* Fixed button text */}
+          {currentState === "sign up" ? "Create an Account" : "Login Now"}  
         </button>
         
         <div className='flex items-center gap-2 text-sm text-gray-500'>
@@ -79,12 +79,12 @@ const [isDataSubmitted, setIsDataSubmitted] = useState(false);
           {currentState === "sign up" ? (
             <p className='text-sm text-gray-600'>
               Already have an account? 
-              <span className='font-medium text-violet-500 cursor-pointer' onClick={() => setCurrentState("login")}> Login here</span>  {/* Fixed: was fonst-medium */}
+              <span className='font-medium text-violet-500 cursor-pointer' onClick={() => { setCurrentState("login"); setIsDataSubmitted(false); }}> Login here</span>  
             </p>
           ) : (
             <p className='text-sm text-gray-600'>
               Create an account 
-              <span className='font-medium text-violet-500 cursor-pointer' onClick={() => setCurrentState("sign up")}> Click here</span>  {/* Fixed: was fonst-medium */}
+              <span className='font-medium text-violet-500 cursor-pointer' onClick={() => setCurrentState("sign up")}> Click here</span>  
             </p>
           )}
         </div>
