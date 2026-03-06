@@ -24,14 +24,13 @@ export const signUp = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
         
-        const newUser = new Users.create({
+        const newUser = await  new Users.create({
             fullName,
             email,
             password:hashedPassword,
             bio
         });
 
-        const Token = generateToken(newUser._id)
         
         
         return res.status(201).json({
@@ -55,14 +54,50 @@ export const signUp = async (req, res) => {
 };
 
 export const login =async(req, res)=>{
-    const { email, password} = req.body;
+    try {
+        const { email, password} = req.body;
     if(!email||!password){
 
-        return res.status(400).json(success:false,
-            message:"email and password are required to login "
+        return res.status(400).json({success:false,
+            message:"email and password are required to login "}
 
 
         );
+         }
+
+         const checkUser= await findOne({email});
+        if(!checkUser){
+            return res.status(400).json({success:false,
+                message:"you have not register already! please try to sing up"
+
+            })
+          const muchPassWord = bcrypt.compare(password, checkUser.password)  
+          if(!muchPassWord){
+            return res.status(400).json({success:false,
+                message:"invalide password please try to insert correct password"}
+            );
+            
+          }
+        }
+         const Token = await generateToken(newUser._id)
+        
+        return res.status(201).json({
+            success: true,
+            message: "User login successfully",
+            userData: checkUser,
+            Token: Token
+            
+        });
+   
+
+    } catch (error) {
+         console.error("Sign in error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error during login"
+        });
+        
     }
+    
 }
 
