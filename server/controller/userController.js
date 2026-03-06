@@ -101,3 +101,19 @@ export const login =async(req, res)=>{
     
 }
 
+export const checkAuth=()=>{
+    res.json({success: true,
+        user:req.user
+    });
+}
+
+//controller for update user profile detaisl
+ export const updateProfile= async(req,res=>{try {
+    const userId= req.user._id;
+    let updatedUser;
+    if(!profile)
+    
+ } catch (error) {
+    
+ }})
+
