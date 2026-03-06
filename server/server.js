@@ -4,6 +4,7 @@ import cors from "cors";
 import { createServer } from "http";
 import dotenv from "dotenv";
 import connectDB from "./lib/db.js";
+import userRouter from "./routes/userRoute.js";
 
 dotenv.config();
 
@@ -14,6 +15,8 @@ app.use(express.json({ limit: "5mb" }));
 app.use(cors());
 
 app.use("/api/status", (req, res) => res.send("server is live"));
+app.use("/api/auth", userRouter);
+app
 
 connectDB()
   

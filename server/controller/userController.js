@@ -1,6 +1,8 @@
 import Users from "../models/User.js";
 import bcrypt from 'bcryptjs';
 import { generateToken } from "../lib/utils.js";
+import cloudinary from "../lib/cloudinary.js";
+
 
 
 export const signUp = async (req, res) => {
@@ -24,7 +26,7 @@ export const signUp = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
         
-        const newUser = await  new Users.create({
+        const newUser = await Users.create({
             fullName,
             email,
             password:hashedPassword,
@@ -65,26 +67,29 @@ export const login =async(req, res)=>{
         );
          }
 
-         const checkUser= await findOne({email});
-        if(!checkUser){
+         const checkedUser= await Users.findOne({email});
+        if(!checkedUser){
             return res.status(400).json({success:false,
                 message:"you have not register already! please try to sing up"
 
             })
-          const muchPassWord = bcrypt.compare(password, checkUser.password)  
+        }
+          const muchPassWord = await bcrypt.compare(password, checkedUser.password)  
           if(!muchPassWord){
             return res.status(400).json({success:false,
                 message:"invalide password please try to insert correct password"}
             );
             
           }
-        }
-         const Token = await generateToken(newUser._id)
+
+        
+        const id= checkedUser._id;
+         const Token = generateToken(id);
         
         return res.status(201).json({
             success: true,
             message: "User login successfully",
-            userData: checkUser,
+            userData: checkedUser,
             Token: Token
             
         });
@@ -101,19 +106,44 @@ export const login =async(req, res)=>{
     
 }
 
-export const checkAuth=()=>{
+export const checkAuth=(req, res)=>{
     res.json({success: true,
         user:req.user
     });
 }
 
 //controller for update user profile detaisl
- export const updateProfile= async(req,res=>{try {
-    const userId= req.user._id;
-    let updatedUser;
-    if(!profile)
-    
- } catch (error) {
-    
- }})
+ export const updateProfile= async(req,res) => {
+    try {
+        const {profilePic, bio, fullName} = req.body;
+        const userId= req.user._id; 
+        let updatedUser;
+        if(!profilePic){
+            updatedUser = await Users.findByIdAndUpdate(userId, {
+                fullName,
+                bio
+            }, {new:true}).select("-password");
+        }
+        else{
+            const upload= await cloudinary.uploader.upload(profilePic);
+            updatedUser = await Users.findByIdAndUpdate(userId, {
+                profilePic: upload.secure_url,
+                fullName,
+                bio,
+            }, 
+            {new:true}).select("-password");
+        }
+        return res.status(200).json({success : true,
+            message : "profile updated successfully",
+            user : updatedUser
+        });
+
+    } catch (error) {
+        console.error("Update profile error:", error.message);
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error during profile update :" + error.message
+        });
+    }
+}
 

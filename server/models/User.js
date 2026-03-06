@@ -2,22 +2,25 @@ import mongoose from "mongoose";
 
 // creating the user schema
 const userSchema=new mongoose.Schema({email:{type:String, required:true, unique:true},
-fullname:{
+fullName:{
     type:String,
     required:true,
 },
 password : {
-    type:string,
+    type:String,
     required:true,
     minlength:6
 },
 profilepic:{
-    type:string,
+    type:String,
     default:""
 },
-createdAt:{timestamps:true},
+ bio: {  // You were missing bio field
+        type: String,
+        default: ""
+    }},
 
-
-});
-const Users = mongoose.connect("User", userSchema);
+{timestamps:true},
+);
+const Users = mongoose.model("Users", userSchema);
 export default Users;
