@@ -1,28 +1,30 @@
 import Users from '../models/User.js';
+import Message from '../models/Message.js';
+
 export const getUsersForSidebar = async (req, res) => {
     try {
         const userId = req.user.id;
         const filteredUsers = await Users.find({ _id: { $ne: userId } }).select('-password');
-        const unseenMessage={
+
+        const unseenMessage={};
             const promises = filteredUsers.map(async (user) => {
-                const Message = await Message.find({
+                const notseenMessage = await Message.find({
                     senderId:user._id, receiverId: userId, seen: false
                 })
-                if(Message.length > 0){
-                    unseenMessage[user._id] = Message.length;}
+                if(notseenMessage.length > 0){
+                    unseenMessage[user._id] = notseenMessage.length;}
+            })
                     await promises.all(promises);
+                    
                     res.json({
                         success: true, 
                         users: filteredUsers,
-                        unseenMessages
-                    })
-            })
-        }
+                        unseenMessages : unseenMessage
+                    });
 
-        
     } catch (error) {
         console.log(error.Message);
-        res.status(500).json({ error: 'Internal server error' ,success: false, message:error.message });
+        res.status(500).json({success: false, message:error.message });
     }
 }
 
@@ -32,7 +34,7 @@ export const getMessages= async (req, res) => {
         const {id:selectedUserId} = req.params;
         const myId = req.user.id;
 
-        const messages =  await Messages.find({
+        const messages =  await Message.find({
             $or:[{senderId: myId, receiverId: selectedUserId}, {senderId: selectedUserId, receiverId: myId}]
         })
 
@@ -44,7 +46,7 @@ export const getMessages= async (req, res) => {
         
     } catch (error) {
         console.log(error.Message);
-        res.status(500).json({ error: 'Internal server error' ,success: false, message:error.message });
+        res.status(500).json({success: false, message:error.message });
     }
 }
 
