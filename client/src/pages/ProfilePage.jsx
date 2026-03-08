@@ -14,8 +14,8 @@ const {authUser, updateProfile} = useContext(AuthContext);
 
   const [selectedImage, setSelectedImage] = useState(null);
   const navigate = useNavigate();
-  const [name, setName] = useState("Martin Johnson");
-  const [bio, setBio] = useState("Hey everyone, I am using this QuickChat");
+  const [name, setName] = useState(authUser.fullName);
+  const [bio, setBio] = useState(authUser.bio);
 
 
   const handleSubmit=async(e)=>{e.preventDefault();
@@ -48,7 +48,7 @@ const {authUser, updateProfile} = useContext(AuthContext);
           <button type='submit' className='bg-gradient-to-r from-purple-400 to-violet-600 text-white p-2 rounded-full text-lg cursor-pointer'>save</button>
 
         </form>
-        <img src={assets.logo_icon} alt="" className='max-w-44 aspect-square rounded-full mx-10 max-sm:mt-10' />
+        <img src={authUser?.profilePic || assets.logo_icon} alt="" className={`max-w-44 aspect-square rounded-full mx-10 max-sm:mt-10 ${selectedImage ? 'rounded-full' : ''}`} />
       </div>
     </div>
   )

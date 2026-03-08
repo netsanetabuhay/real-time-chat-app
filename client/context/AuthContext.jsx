@@ -53,11 +53,14 @@ const login = async (state, credentials)=>{
 if(data.success){
     setAuthUser(data.userData);
     connectSocket(data.userData);
-axios.defaults.headers.common['token'] = data.token; // eslint-disable-line
-    setToken(data.token);
-    localStorage.setItem("token", data.token);
+    axios.defaults.headers.common['Token'] = data.Token;
+    setToken(data.Token);
+    localStorage.setItem("token", data.Token);
+    
+    console.log("Token from response:", data.Token);
+    console.log("Token saved to localStorage:", localStorage.getItem("token"));
+    
     toast.success(data.message);
-
 }
 else{
     toast.error(data.message);
@@ -89,7 +92,14 @@ const logout = async () =>{
 
 const updateProfile = async(body)=>{
     try {
-        const {data} = await axios.put("/api/auth/update-profile", body);
+       const tokenToSend = token || localStorage.getItem("token");
+
+       const { data } = await axios.put("/api/auth/update-profile", body, {
+            headers: {
+                'token': tokenToSend
+            }
+        });
+        
         if(data.success){
             setAuthUser(data.user);
             toast.success('Profile updated successfully ');
