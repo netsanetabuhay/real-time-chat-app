@@ -45,11 +45,15 @@ const checkAuth = async () => {
 const login = async (state, credentials)=>{
 
     try {
-const {data}= await axios.post(`/api/auth/${state}`, credentials);
+        console.log("Sending credentials:", credentials);
+        const { data } = await axios.post(`/api/auth/${state}`, credentials);
+       console.log("Response data:", data); // Add this
+
+
 if(data.success){
     setAuthUser(data.userData);
     connectSocket(data.userData);
-    axios.defaults.headers.common["token"]=data.token;
+axios.defaults.headers.common['token'] = data.token; // eslint-disable-line
     setToken(data.token);
     localStorage.setItem("token", data.token);
     toast.success(data.message);
@@ -60,6 +64,7 @@ else{
 }
         
     } catch (error) {
+     console.error("Login error:", error.response?.data); // Log the error response
         toast.error(error.message);
         
     }
@@ -130,16 +135,14 @@ useEffect(()=>{
 
 
 
-    const value= (
+    const value= {
         axios,
         authUser,
         onlineUser,
         socket,
         login,
         logout,
-        updateProfile
-
-);
+        updateProfile};
 
 
     return (<AuthContext.Provider value={value}>

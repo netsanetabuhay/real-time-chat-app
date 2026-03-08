@@ -1,15 +1,38 @@
-import React, { useState } from 'react'
+import React, { useState, useContext } from 'react' 
 import assets from '../assets/assets';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext.jsx';
 
 const ProfilePage = () => {
+
+
+const {authUser, updateProfile} = useContext(AuthContext);  
+
+
+
+
+
   const [selectedImage, setSelectedImage] = useState(null);
   const navigate = useNavigate();
   const [name, setName] = useState("Martin Johnson");
   const [bio, setBio] = useState("Hey everyone, I am using this QuickChat");
+
+
   const handleSubmit=async(e)=>{e.preventDefault();
-    navigate('/')
-  }
+    if(!selectedImage){
+      await updateProfile({fullName:name,bio})
+      navigate('/')
+      return;
+    }
+     
+     const reader = new FileReader();
+     reader.readAsDataURL(selectedImage);
+     reader.onloadend = async () => {
+      const base64Image = reader.result;
+      await updateProfile({profilePic: base64Image,fullName:name,bio})
+      navigate('/')
+     }
+     }
 
   return (
     <div className='min-h-screen bg-cover bg-no-repeat flex items-center justify-center'>
