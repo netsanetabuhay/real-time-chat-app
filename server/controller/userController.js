@@ -3,8 +3,6 @@ import bcrypt from 'bcryptjs';
 import { generateToken } from "../lib/utils.js";
 import cloudinary from "../lib/cloudinary.js";
 
-
-
 export const signUp = async (req, res) => {
     const { fullName, email, password, bio } = req.body;
     
@@ -55,7 +53,7 @@ export const signUp = async (req, res) => {
     }
 };
 
-export const login =async(req, res)=>{
+export const login = async(req, res)=>{
     try {
         const { email, password} = req.body;
     if(!email||!password){
@@ -112,37 +110,68 @@ export const checkAuth=(req, res)=>{
     });
 }
 
- export const updateProfile= async(req,res) => {
+// FIXED: updateProfile with optional fields - update only what is provided
+export const updateProfile = async (req, res) => {
     try {
-        const {profilePic, bio, fullName} = req.body;
-        const userId= req.user._id; 
-        let updatedUser;
-        if(!profilePic){
-            updatedUser = await Users.findByIdAndUpdate(userId, {
-                fullName,
-                bio
-            }, {new:true}).select("-password");
+        const userId = req.user._id;
+        const updateData = {};
+        
+        // Only add fields that are provided in the request
+        if (req.body.fullName !== undefined) {
+            updateData.fullName = req.body.fullName;
         }
-        else{
-            const upload= await cloudinary.uploader.upload(profilePic);
-            updatedUser = await Users.findByIdAndUpdate(userId, {
-                profilePic: upload.secure_url,
-                fullName,
-                bio,
-            }, 
-            {new:true}).select("-password");
+        
+        if (req.body.bio !== undefined) {
+            updateData.bio = req.body.bio;
         }
-        return res.status(200).json({success : true,
-            message : "profile updated successfully",
-            user : updatedUser
+        
+        // Handle profile picture if provided
+        if (req.body.profilePic) {
+            try {
+                console.log("Uploading image to cloudinary...");
+                const upload = await cloudinary.uploader.upload(req.body.profilePic, {
+                    folder: "chat-app/profiles",
+                });
+                console.log("Cloudinary upload successful:", upload.secure_url);
+                updateData.profilepic = upload.secure_url;
+            } catch (uploadError) {
+                console.error("Cloudinary upload error:", uploadError);
+                return res.status(500).json({
+                    success: false,
+                    message: "Failed to upload image"
+                });
+            }
+        }
+        
+        // Check if there's anything to update
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "No fields to update"
+            });
+        }
+        
+        // Update user in database
+        const updatedUser = await Users.findByIdAndUpdate(
+            userId, 
+            updateData, 
+            { new: true }
+        ).select("-password");
+        
+        console.log("User updated successfully:", updatedUser);
+        
+        return res.status(200).json({
+            success: true,
+            message: "Profile updated successfully",
+            user: updatedUser
         });
 
     } catch (error) {
         console.error("Update profile error:", error.message);
+        console.error("Full error:", error);
         return res.status(500).json({
             success: false,
-            message: "Internal server error during profile update :" + error.message
+            message: "Internal server error during profile update"
         });
     }
 }
-

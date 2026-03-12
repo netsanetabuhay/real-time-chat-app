@@ -90,21 +90,23 @@ export const sendMessage = async(req, res) => {
         
         let imageUrl;
         if(image){
-            const uploadResponse = await cloudinary.uploader.upload(image);
+            // Upload image to cloudinary
+            const uploadResponse = await cloudinary.uploader.upload(image, {
+                folder: "chat-app/messages",
+            });
             imageUrl = uploadResponse.secure_url;
         }
         
-        // Create message with correct field names
         const newMessage = await Message.create({
-            sendrId: senderId,  // Your schema uses 'sendrId'
+            sendrId: senderId,
             receiverId: receiverId, 
-            message: text || "", // Your schema uses 'message' field
-            text: text || "",    // Keep text field too
+            message: text || "",
+            text: text || "",
             image: imageUrl,
             seen: false
         });
 
-        console.log("Message created:", newMessage);
+        console.log("Message created with image:", imageUrl);
 
         // emit the new message to the receiver's socket
         const receiverSocketId = userSocketMap[receiverId];
@@ -118,5 +120,4 @@ export const sendMessage = async(req, res) => {
         res.status(500).json({success: false, message: error.message});
     }
 }
-
    
