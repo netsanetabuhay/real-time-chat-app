@@ -12,6 +12,8 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
   const { message, sendMessag } = useContext(ChatContext);
   const { authUser } = useContext(AuthContext);
   const [newMessage, setNewMessage] = useState("");
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
@@ -21,40 +23,32 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
     }
   }, [message]);
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    console.log("HANDLE SEND MESSAGE CALLED");
-    console.log("Event type:", e.type);
-    console.log("========== SEND MESSAGE DEBUG ==========");
-    console.log("1. handleSendMessage triggered");
-    console.log("2. Message text:", newMessage);
-    console.log("3. Selected user object:", selectedUser);
-    console.log("4. Selected user ID:", selectedUser?._id);
-    console.log("5. Selected user fullName:", selectedUser?.fullName);
-    console.log("6. Sending status:", sending);
     
-    if (!newMessage.trim()) {
-      console.log("7. Empty message validation failed");
-      toast.error("Message cannot be empty");
+    if (!newMessage.trim() && !selectedImage) {
+      toast.error("Message or image is required");
       return;
     }
     
     if (!selectedUser) {
-      console.log("7. No user selected - selectedUser is null");
       toast.error("No user selected");
       return;
     }
     
-    if (!selectedUser._id) {
-      console.log("Selected user has no _id property");
-      toast.error("Invalid user");
-      return;
-    }
-    
-    if (sending) {
-      console.log("Already sending a message");
-      return;
-    }
+    if (sending) return;
     
     setSending(true);
     
@@ -63,19 +57,35 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
         text: newMessage.trim(),
         receiverId: selectedUser._id
       };
-     
-      await sendMessag(messagePayload);
-      setNewMessage("");
+      
+      // Add image if selected
+      if (selectedImage) {
+        const reader = new FileReader();
+        reader.readAsDataURL(selectedImage);
+        reader.onloadend = async () => {
+          const base64Image = reader.result;
+          messagePayload.image = base64Image;
+          await sendMessag(messagePayload);
+          setNewMessage("");
+          setSelectedImage(null);
+          setImagePreview(null);
+          setSending(false);
+        };
+      } else {
+        await sendMessag(messagePayload);
+        setNewMessage("");
+        setSending(false);
+      }
     } catch (error) {
       console.error("Error in sendMessag:", error);
       toast.error("Failed to send message");
-    } finally {
       setSending(false);
     }
   };
 
-  const handleButtonClick = () => {
-    console.log("Button clicked directly");
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
   };
 
   if (!selectedUser) {
@@ -96,7 +106,7 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
       {/* Header */}
       <div className='flex items-center gap-3 py-3 mx-4 border-b border-stone-500'>
         <img
-          src={selectedUser.profilePic || assets.avatar_icon}
+          src={selectedUser.profilepic || assets.avatar_icon}
           alt=""
           className="w-8 rounded-full object-cover"
         />
@@ -105,10 +115,7 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
           <span className="w-2 h-2 rounded-full bg-green-500"></span>
         </p>
         <img
-          onClick={() => {
-            console.log("Back button clicked");
-            setSelectedUser(null);
-          }}
+          onClick={() => setSelectedUser(null)}
           src={assets.arrow_icon}
           alt=""
           className='md:hidden max-w-7 cursor-pointer'
@@ -120,7 +127,7 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
         />
       </div>
 
-      {/* Chat area */}
+      {/* Chat area - FIXED status indicators */}
       <div className='flex flex-col h-[calc(100%-120px)] overflow-y-scroll p-3 pb-6'>
         {message && message.length > 0 ? (
           message.map((msg, index) => {
@@ -135,7 +142,7 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
               >
                 {!isSentByMe && (
                   <img
-                    src={selectedUser.profilePic || assets.avatar_icon}
+                    src={selectedUser.profilepic || assets.avatar_icon}
                     alt=""
                     className='w-7 h-7 rounded-full object-cover'
                   />
@@ -143,11 +150,13 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
                 
                 <div className={`max-w-[70%] ${isSentByMe ? 'order-1' : 'order-2'}`}>
                   {msg.image ? (
-                    <img
-                      src={msg.image}
-                      alt=""
-                      className='max-w-[230px] border border-gray-700 rounded-lg overflow-hidden'
-                    />
+                    <div className='relative'>
+                      <img
+                        src={msg.image}
+                        alt=""
+                        className='max-w-[230px] border border-gray-700 rounded-lg overflow-hidden'
+                      />
+                    </div>
                   ) : (
                     <p
                       className={`p-3 md:text-sm font-light rounded-2xl break-words ${
@@ -159,17 +168,19 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
                       {msg.message || msg.text}
                     </p>
                   )}
-                  <p className='text-xs text-gray-400 mt-1 text-right'>
+                  <p className='text-xs text-gray-400 mt-1 text-right flex items-center justify-end gap-1'>
                     {formatMessageTime(msg.createdAt)}
-                    {isSentByMe && msg.seen && (
-                      <span className='ml-2 text-green-400'>✓ Seen</span>
+                    {isSentByMe && (
+                      <span className='ml-1'>
+                        {msg.seen ? '✓✓' : '✓'}
+                      </span>
                     )}
                   </p>
                 </div>
                 
                 {isSentByMe && (
                   <img
-                    src={authUser?.profilePic || assets.avatar_icon}
+                    src={authUser?.profilepic || assets.avatar_icon}
                     alt=""
                     className='w-7 h-7 rounded-full object-cover order-2'
                   />
@@ -185,6 +196,21 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
         <div ref={scrollEnd}></div>
       </div>
 
+      {/* Image preview */}
+      {imagePreview && (
+        <div className='absolute bottom-20 left-3 bg-[#1a1a2e] p-2 rounded-lg border border-gray-600'>
+          <div className='relative'>
+            <img src={imagePreview} alt="Preview" className='max-w-[150px] max-h-[150px] rounded' />
+            <button
+              onClick={removeImage}
+              className='absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs'
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Bottom area */}
       <form onSubmit={handleSendMessage} className='absolute bottom-0 left-0 right-0 flex items-center gap-3 p-3 bg-[#1a1a2e]/90'>
         <div className='flex-1 flex items-center bg-gray-100/12 px-3 rounded-full'>
@@ -192,22 +218,24 @@ const ChatContainer = ({ selectedUser, setSelectedUser }) => {
             type="text" 
             placeholder="Send a message" 
             value={newMessage}
-            onChange={(e) => {
-              console.log("Input changed:", e.target.value);
-              setNewMessage(e.target.value);
-            }}
+            onChange={(e) => setNewMessage(e.target.value)}
             disabled={sending}
             className='flex-1 text-sm p-3 border-none rounded-lg outline-none text-white placeholder-gray-400 bg-transparent'
           />
-          <input type="file" id="image" accept='image/*' hidden/>
+          <input 
+            type="file" 
+            id="image" 
+            accept='image/*' 
+            onChange={handleImageChange}
+            hidden
+          />
           <label htmlFor="image">
             <img src={assets.gallery_icon} alt="" className='w-5 mr-2 cursor-pointer' />
           </label>
         </div>
         <button 
           type="submit"
-          onClick={handleButtonClick}
-          disabled={sending || !newMessage.trim()}
+          disabled={sending || (!newMessage.trim() && !selectedImage)}
           className='disabled:opacity-50'
         >
           <img src={assets.send_button} alt="" className='w-7 cursor-pointer'/>

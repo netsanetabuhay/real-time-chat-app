@@ -51,69 +51,64 @@ const getMessages = useCallback(async (userId) => {
         
         if (data.success) {
             console.log(`Setting ${data.messages.length} messages`);
-            setMessage(data.messages); // Make sure it's data.messages not data.message
+            setMessage(data.messages);
+            
+            // Clear unread count for this user
+            setUnSeenMessag(prev => ({
+                ...prev,
+                [userId]: 0
+            }));
+            
+            return data.messages; // Return messages for use in RightSideBar
         }
     } catch (error) {
         console.error("getMessages error:", error);
         toast.error(error.message);
     }
 }, [axios]);
-// Send message to selected user - FIXED
+
+    // Send message to selected user - WITH IMAGE SUPPORT
 const sendMessag = useCallback(async (messageData) => {
-    console.log("========== SENDMESSAG DEBUG ==========");
     console.log("sendMessag received:", messageData);
     
-    // Get receiverId from messageData
     const receiverId = messageData?.receiverId;
     
     if (!receiverId) {
-        console.log("❌ No receiverId found in messageData");
         toast.error("No user selected");
         return;
     }
     
-    // Prevent sending message to yourself
     if (authUser?._id === receiverId) {
-        console.log("❌ Cannot send to self");
         toast.error("Cannot send message to yourself");
         return;
     }
     
     try {
-        // Format data to match your Mongoose schema exactly
         const backendPayload = {
-            sendrId: authUser?._id,        // MUST include this - your schema requires it
+            sendrId: authUser?._id,
             receiverId: receiverId,
-            message: messageData.text,      // Your schema requires 'message' field
-            text: messageData.text,         // Optional text field
-            image: null
+            message: messageData.text || "",
+            text: messageData.text || "",
+            image: messageData.image || null  // Add image to payload
         };
         
         console.log("Sending to backend:", backendPayload);
-        console.log("To receiver ID:", receiverId);
         
         const { data } = await axios.post(`/api/messages/send/${receiverId}`, backendPayload);
         
-        console.log("API response:", data);
-
         if (data.success) {
-            console.log("Success, updating messages with new message:", data.message);
             setMessage((prevMessage) => [
                 ...prevMessage,
                 data.message
             ]);
-            toast.success("Message sent");
+            // toast.success("Message sent");
         } else {
-            console.log("Server error:", data.message);
             toast.error(data.message || "Failed to send message");
         }
     } catch (error) {
         console.error("API call error:", error);
-        console.error("Error response:", error.response?.data);
-        console.error("Error status:", error.response?.status);
         toast.error(error.response?.data?.message || error.message);
     }
-    console.log("========== END SENDMESSAG DEBUG ==========");
 }, [axios, authUser]);
 
     // Subscribe to messages
@@ -122,7 +117,8 @@ const sendMessag = useCallback(async (messageData) => {
         
         if (!newMessage) return;
 
-        if (selectedUser && newMessage.senderId === selectedUser._id) {
+        // Check if message is for currently selected user
+        if (selectedUser && (newMessage.sendrId === selectedUser._id || newMessage.senderId === selectedUser._id)) {
             console.log("Message is for current chat");
             const updatedMessage = { ...newMessage, seen: true };
             setMessage((prevMessage) => [...prevMessage, updatedMessage]);
@@ -130,11 +126,18 @@ const sendMessag = useCallback(async (messageData) => {
             axios.put(`/api/messages/mark/${newMessage._id}`).catch(error => {
                 console.error("Failed to mark message as seen:", error);
             });
+            
+            // Clear unread count for this user
+            setUnSeenMessag((prev) => ({
+                ...prev,
+                [newMessage.sendrId]: 0
+            }));
         } else {
             console.log("Message from other user, updating unSeen count");
+            const senderId = newMessage.sendrId || newMessage.senderId;
             setUnSeenMessag((prevUnseenMessages) => ({
                 ...prevUnseenMessages,
-                [newMessage.senderId]: prevUnseenMessages[newMessage.senderId] ? prevUnseenMessages[newMessage.senderId] + 1 : 1
+                [senderId]: prevUnseenMessages[senderId] ? prevUnseenMessages[senderId] + 1 : 1
             }));
         }
     }, [selectedUser, axios]);
@@ -165,6 +168,12 @@ const sendMessag = useCallback(async (messageData) => {
             if (selectedUser?._id) {
                 console.log(`Fetching messages for user: ${selectedUser._id}`);
                 await getMessages(selectedUser._id);
+                
+                // Clear unread count for selected user
+                setUnSeenMessag((prev) => ({
+                    ...prev,
+                    [selectedUser._id]: 0
+                }));
             } else {
                 console.log("No user selected, clearing messages");
                 setMessage([]);

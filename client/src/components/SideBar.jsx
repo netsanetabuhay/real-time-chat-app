@@ -56,34 +56,43 @@ const SideBar = ({ setSelectedUser, selectedUser }) => {
       </div>
 
       <div className='flex flex-col'>
-        {filteredUsers?.map((user) => (
-          <div
-            onClick={() => handleUserClick(user)}
-            key={user._id}  
-            className={`relative flex items-center gap-2 p-2 pl-4 rounded cursor-pointer max-sm:text-sm ${selectedUser?._id === user._id ? 'bg-[#282142]/50' : ''}`}
-          >
-            <img
-              src={user?.profilePic || assets.avatar_icon}
-              alt=""
-              className='w-[35px] aspect-[1/1] rounded-full object-cover'
-            />
-            <div className='flex flex-col leading-5 flex-1'>
-              <p>{user.fullName}</p>
-              {onlineUsers?.includes(user._id) ? (
-                <span className='text-green-400 text-xs'>Online</span>
-              ) : (
-                <span className='text-neutral-400 text-xs'>Offline</span>
+        {filteredUsers?.map((user) => {
+          const isOnline = onlineUsers?.includes(user._id);
+          
+          return (
+            <div
+              onClick={() => handleUserClick(user)}
+              key={user._id}  
+              className={`relative flex items-center gap-2 p-2 pl-4 rounded cursor-pointer max-sm:text-sm ${selectedUser?._id === user._id ? 'bg-[#282142]/50' : ''}`}
+            >
+              <div className='relative'>
+                <img
+                  src={user?.profilepic || assets.avatar_icon}  // FIXED: use profilepic
+                  alt=""
+                  className='w-[35px] aspect-[1/1] rounded-full object-cover'
+                />
+                <span 
+                  className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#1a1a2e] ${
+                    isOnline ? 'bg-green-500' : 'bg-gray-500'
+                  }`}
+                ></span>
+              </div>
+              
+              <div className='flex flex-col leading-5 flex-1'>
+                <p>{user.fullName}</p>
+                <span className={`text-xs ${isOnline ? 'text-green-400' : 'text-neutral-400'}`}>
+                  {isOnline ? 'Online' : ''}
+                </span>
+              </div>
+              
+              {unSeenMessage?.[user._id] > 0 && (
+                <div className='bg-violet-600 text-white text-xs font-bold min-w-5 h-5 flex items-center justify-center rounded-full px-1.5'>
+                  {unSeenMessage[user._id]}
+                </div>
               )}
             </div>
-            
-            {/* Unseen message count badge */}
-            {unSeenMessage?.[user._id] > 0 && (
-              <div className='bg-violet-600 text-white text-xs font-bold min-w-5 h-5 flex items-center justify-center rounded-full px-1.5'>
-                {unSeenMessage[user._id]}
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>       
   );

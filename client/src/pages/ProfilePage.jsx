@@ -10,10 +10,10 @@ const ProfilePage = () => {
   const [name, setName] = useState(authUser?.fullName || "");
   const [bio, setBio] = useState(authUser?.bio || "");
   const [isLoading, setIsLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const navigate = useNavigate();
   const profileCardRef = useRef(null);
 
-  // Handle click outside to close
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileCardRef.current && !profileCardRef.current.contains(event.target)) {
@@ -26,6 +26,18 @@ const ProfilePage = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [navigate]);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,14 +82,14 @@ const ProfilePage = () => {
           <h3 className='text-lg'>Profile Details</h3>
           <label htmlFor="avatar" className='flex items-center gap-3 cursor-pointer'>
             <input 
-              onChange={(e) => setSelectedImage(e.target.files[0])} 
+              onChange={handleImageChange}
               type="file" 
               id='avatar' 
               accept='.png, .jpg, .jpeg' 
               hidden 
             />
             <img 
-              src={selectedImage ? URL.createObjectURL(selectedImage) : (authUser?.profilePic || assets.avatar_icon)} 
+              src={previewUrl || authUser?.profilepic || assets.avatar_icon}  // FIXED: use profilepic
               alt="" 
               className='w-12 h-12 rounded-full object-cover' 
             /> 
@@ -107,7 +119,6 @@ const ProfilePage = () => {
             {isLoading ? "Saving..." : "Save"}
           </button>
           
-          {/* Logout button below save */}
           <button 
             type='button'
             onClick={handleLogout}
@@ -117,7 +128,7 @@ const ProfilePage = () => {
           </button>
         </form>
         <img 
-          src={selectedImage ? URL.createObjectURL(selectedImage) : (authUser?.profilePic || assets.logo_icon)} 
+          src={previewUrl || authUser?.profilepic || assets.logo_icon}  // FIXED: use profilepic
           alt="" 
           className='max-w-44 aspect-square rounded-full mx-10 max-sm:mt-10 object-cover' 
         />
