@@ -2,14 +2,13 @@ import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import assets from "../assets/assets";
 import { AuthContext } from '../../context/AuthContext';
-import { ChatContext } from '../../context/ChatContext'; 
+import { ChatContext } from '../../context/ChatContext';
 
-const SideBar = () => {
-  const { logout, onlineUsers } = useContext(AuthContext);
-  const { getUsers, users, selectedUser, setSelectedUser, unSeenMessage } = useContext(ChatContext);
+const SideBar = ({ setSelectedUser, selectedUser }) => {
+  const { logout, onlineUsers, authUser } = useContext(AuthContext);
+  const { getUsers, users, unSeenMessage } = useContext(ChatContext);
 
   const [input, setInput] = useState("");
-
   const navigate = useNavigate();
 
   const filteredUsers = input 
@@ -18,7 +17,27 @@ const SideBar = () => {
 
   useEffect(() => {
     getUsers();
-  }, [getUsers, onlineUsers]);  
+  }, [getUsers]);
+
+  const handleUserClick = (user) => {
+    console.log("Clicked user ID:", user._id);
+    console.log("Auth user ID:", authUser?._id);
+    
+    // If clicked user is the logged-in user (own profile)
+    if (authUser?._id === user._id) {
+      console.log("✅ This is OWN PROFILE - navigating to profile page");
+      // Clear selected user first
+      setSelectedUser(null);
+      // Navigate to profile page
+      navigate('/profile');
+      return; // Exit early - no chat opened
+    }
+    
+    // For other users - open chat
+    console.log("✅ This is ANOTHER USER - opening chat");
+    setSelectedUser(user);
+  };
+
   return (
     <div className={`bg-[#8185B2]/10 backdrop-blur-xl h-full p-5 rounded-r-xl overflow-y-scroll text-white ${selectedUser ? "max-md:hidden" : ''}`}>
       <div className='pb-5'>
@@ -47,16 +66,16 @@ const SideBar = () => {
       </div>
 
       <div className='flex flex-col'>
-        {filteredUsers.map((user) => (
+        {filteredUsers?.map((user) => (
           <div
-            onClick={() => setSelectedUser(user)}
+            onClick={() => handleUserClick(user)}
             key={user._id}  
             className={`relative flex items-center gap-2 p-2 pl-4 rounded cursor-pointer max-sm:text-sm ${selectedUser?._id === user._id ? 'bg-[#282142]/50' : ''}`}
           >
             <img
               src={user?.profilePic || assets.avatar_icon}
               alt=""
-              className='w-[35px] aspect-[1/1] rounded-full'
+              className='w-[35px] aspect-[1/1] rounded-full object-cover'
             />
             <div className='flex flex-col leading-5'>
               <p>{user.fullName}</p>

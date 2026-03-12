@@ -11,23 +11,33 @@ export const ChatProvider = ({ children }) => {
     const [users, setUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [unSeenMessage, setUnSeenMessag] = useState({});
-    const { socket, axios } = useContext(AuthContext);
+    const { socket, axios, authUser } = useContext(AuthContext);
 
-    //function to get all users for sidebar
-    const getUsers = async () => {
+    // Get all users for sidebar - FIXED to include current user
+    const getUsers = useCallback(async () => {
         try {
             const { data } = await axios.get("/api/messages/users");
             if (data.success) {
-                setUsers(data.users);
+                // Check if current user is in the users list
+                const currentUser = authUser;
+                const userExists = data.users.some(user => user._id === currentUser?._id);
+                
+                // If current user is not in the list, add them
+                if (currentUser && !userExists) {
+                    setUsers([currentUser, ...data.users]);
+                } else {
+                    setUsers(data.users);
+                }
+                
                 setUnSeenMessag(data.unSeenMessage);
             }
         } catch (error) {
             toast.error(error.message);
         }
-    };
+    }, [axios, authUser]);
 
-    //function to get messages for selected user
-    const getMessages = async (userId) => {
+    // Get messages for selected user
+    const getMessages = useCallback(async (userId) => {
         try {
             const { data } = await axios.get(`/api/messages/${userId}`);
             if (data.success) {
@@ -36,39 +46,49 @@ export const ChatProvider = ({ children }) => {
         } catch (error) {
             toast.error(error.message);
         }
-    };
+    }, [axios]);
 
-    //function to send message to selected user
-    const sendMessag = async (messageData) => {
+    // Send message to selected user
+    const sendMessag = useCallback(async (messageData) => {
+        // Add check to prevent sending to self
+        if (!selectedUser || !selectedUser._id) {
+            toast.error("No user selected");
+            return;
+        }
+        
+        // Prevent sending message to yourself
+        if (authUser?._id === selectedUser._id) {
+            toast.error("Cannot send message to yourself");
+            return;
+        }
+        
         try {
-            const { data } = await axios.post(`/api/messages/send/${selectedUser?._id}`, messageData);
+            const { data } = await axios.post(`/api/messages/send/${selectedUser._id}`, messageData);
 
             if (data.success && selectedUser) {
                 setMessage((prevMessage) => [
-                    ...prevMessage, 
+                    ...prevMessage,
                     data.newMessage
                 ]);
             } else {
                 toast.error(data.message || "Failed to send message");
             }
         } catch (error) {
+            console.error("Send message error:", error);
             toast.error(error.message);
         }
-    };
+    }, [axios, selectedUser, authUser]);
 
-    //function to subscribe to messages for selected user
+    // Subscribe to messages
     const subscribeToMessages = useCallback((newMessage) => {
         if (!newMessage) return;
-        
+
         if (selectedUser && newMessage.senderId === selectedUser._id) {
-            // FIXED: Don't mutate the parameter directly
             const updatedMessage = { ...newMessage, seen: true };
             setMessage((prevMessage) => [...prevMessage, updatedMessage]);
-            
-            // FIXED: Added toast error for user feedback
+
             axios.put(`/api/messages/mark/${newMessage._id}`).catch(error => {
                 console.error("Failed to mark message as seen:", error);
-                toast.error("Failed to mark message as seen");
             });
         } else {
             setUnSeenMessag((prevUnseenMessages) => ({
@@ -76,22 +96,34 @@ export const ChatProvider = ({ children }) => {
                 [newMessage.senderId]: prevUnseenMessages[newMessage.senderId] ? prevUnseenMessages[newMessage.senderId] + 1 : 1
             }));
         }
-    }, [selectedUser, axios]);  // Added dependencies
+    }, [selectedUser, axios]);
 
-    //function to unsubscribe
+    // Unsubscribe from messages
     const unsubscribeFromMessages = useCallback(() => {
         if (socket) {
             socket.off('newMessage', subscribeToMessages);
         }
-    }, [socket, subscribeToMessages]);  // Added dependencies
+    }, [socket, subscribeToMessages]);
 
+    // Socket subscription effect
     useEffect(() => {
         if (socket) {
             socket.on('newMessage', subscribeToMessages);
         }
-        
+
         return () => unsubscribeFromMessages();
-    }, [socket, selectedUser, subscribeToMessages, unsubscribeFromMessages]);
+    }, [socket, subscribeToMessages, unsubscribeFromMessages]);
+
+    // Fetch messages when selected user changes
+    useEffect(() => {
+        const fetchMessages = async () => {
+            if (selectedUser?._id) {
+                await getMessages(selectedUser._id);
+            }
+        };
+        
+        fetchMessages();
+    }, [selectedUser, getMessages]);
 
     const value = {
         message,
