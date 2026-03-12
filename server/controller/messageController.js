@@ -32,28 +32,35 @@ export const getUsersForSidebar = async (req, res) => {
 }
 
 //get all messages for selected user
-export const getMessages= async (req, res) => {
+export const getMessages = async (req, res) => {
     try {
-        const {id:selectedUserId} = req.params;
+        const {id: selectedUserId} = req.params;
         const myId = req.user.id;
 
-        const messages =  await Message.find({
-            $or:[{senderId: myId, receiverId: selectedUserId}, {senderId: selectedUserId, receiverId: myId}]
-        })
+        console.log(`Fetching messages between ${myId} and ${selectedUserId}`);
 
+        const messages = await Message.find({
+            $or: [
+                { sendrId: myId, receiverId: selectedUserId },
+                { sendrId: selectedUserId, receiverId: myId }
+            ]
+        }).sort({ createdAt: 1 }); // Sort by time ascending
+
+        console.log(`Found ${messages.length} messages`);
+
+        // Mark messages as seen
         await Message.updateMany({
-            senderId: selectedUserId, receiverId: myId, seen: false
-        }, {seen: true});        
+            sendrId: selectedUserId, 
+            receiverId: myId, 
+            seen: false
+        }, { seen: true });        
         
-         res.json({success: true, messages});
-
-        
+        res.json({success: true, messages});
     } catch (error) {
-        console.log(error.Message);
-        res.status(500).json({success: false, message:error.message });
+        console.log(error.message);
+        res.status(500).json({success: false, message: error.message});
     }
 }
-
 //api to mark the message as seen using message id 
 export const markMessageAsSeen = async (req, res) => {
     try {
@@ -67,33 +74,49 @@ export const markMessageAsSeen = async (req, res) => {
 }
 
 //send message to selected user
-
 export const sendMessage = async(req, res) => { 
     try {
         const {text, image} = req.body;
         const receiverId = req.params.id;
         const senderId = req.user._id;
-        let imageUrl ;
+        
+        // Validate that at least one of text or image is provided
+        if (!text && !image) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Either text or image is required" 
+            });
+        }
+        
+        let imageUrl;
         if(image){
             const uploadResponse = await cloudinary.uploader.upload(image);
             imageUrl = uploadResponse.secure_url;
         }
-        const newMessage = await Message.create({senderId, receiverId, text, image: imageUrl});
+        
+        // Create message with correct field names
+        const newMessage = await Message.create({
+            sendrId: senderId,  // Your schema uses 'sendrId'
+            receiverId: receiverId, 
+            message: text || "", // Your schema uses 'message' field
+            text: text || "",    // Keep text field too
+            image: imageUrl,
+            seen: false
+        });
+
+        console.log("Message created:", newMessage);
 
         // emit the new message to the receiver's socket
         const receiverSocketId = userSocketMap[receiverId];
         if(receiverSocketId){
-            io.to(receiverSocketId).emit("newMessage",newMessage);
+            io.to(receiverSocketId).emit("newMessage", newMessage);
         }
+        
         res.status(200).json({success: true, message: newMessage});
-     
-}
-
-    catch (error) {
+    } catch (error) {
         console.log(error.message);
         res.status(500).json({success: false, message: error.message});
     }
 }
-
 
    
