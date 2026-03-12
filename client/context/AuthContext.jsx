@@ -60,9 +60,7 @@ const AuthProvider = ({ children }) => {
     // Login function
     const login = useCallback(async (state, credentials) => {
         try {
-            console.log("Sending credentials:", credentials);
             const { data } = await axios.post(`/api/auth/${state}`, credentials);
-            console.log("Response data:", data);
 
             if (data.success) {
                 setAuthUser(data.userData);
@@ -70,9 +68,6 @@ const AuthProvider = ({ children }) => {
                 axios.defaults.headers.common['Token'] = data.Token;
                 setToken(data.Token);
                 localStorage.setItem("token", data.Token);
-
-                console.log("Token from response:", data.Token);
-                console.log("Token saved to localStorage:", localStorage.getItem("token"));
 
                 toast.success(data.message);
             } else {

@@ -20,21 +20,11 @@ const SideBar = ({ setSelectedUser, selectedUser }) => {
   }, [getUsers]);
 
   const handleUserClick = (user) => {
-    console.log("Clicked user ID:", user._id);
-    console.log("Auth user ID:", authUser?._id);
-    
-    // If clicked user is the logged-in user (own profile)
     if (authUser?._id === user._id) {
-      console.log("✅ This is OWN PROFILE - navigating to profile page");
-      // Clear selected user first
       setSelectedUser(null);
-      // Navigate to profile page
       navigate('/profile');
-      return; // Exit early - no chat opened
+      return;
     }
-    
-    // For other users - open chat
-    console.log("✅ This is ANOTHER USER - opening chat");
     setSelectedUser(user);
   };
 
@@ -77,7 +67,7 @@ const SideBar = ({ setSelectedUser, selectedUser }) => {
               alt=""
               className='w-[35px] aspect-[1/1] rounded-full object-cover'
             />
-            <div className='flex flex-col leading-5'>
+            <div className='flex flex-col leading-5 flex-1'>
               <p>{user.fullName}</p>
               {onlineUsers?.includes(user._id) ? (
                 <span className='text-green-400 text-xs'>Online</span>
@@ -85,10 +75,12 @@ const SideBar = ({ setSelectedUser, selectedUser }) => {
                 <span className='text-neutral-400 text-xs'>Offline</span>
               )}
             </div>
+            
+            {/* Unseen message count badge */}
             {unSeenMessage?.[user._id] > 0 && (
-              <p className='absolute top-4 right-4 text-xs h-5 w-5 flex justify-center items-center rounded-full bg-violet-500/50'>
+              <div className='bg-violet-600 text-white text-xs font-bold min-w-5 h-5 flex items-center justify-center rounded-full px-1.5'>
                 {unSeenMessage[user._id]}
-              </p>
+              </div>
             )}
           </div>
         ))}

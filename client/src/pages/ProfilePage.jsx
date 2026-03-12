@@ -17,7 +17,6 @@ const ProfilePage = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileCardRef.current && !profileCardRef.current.contains(event.target)) {
-        console.log("Clicked outside - navigating to home");
         navigate('/');
       }
     };
